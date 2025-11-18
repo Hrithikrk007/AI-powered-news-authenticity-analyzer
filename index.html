@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>AI-Powered News Authenticity Analyzer</title>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = { darkMode: 'class' };
+
+        function toggleDark() {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem("darkMode", document.documentElement.classList.contains("dark"));
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if (localStorage.getItem("darkMode") === "true") {
+                document.documentElement.classList.add("dark");
+            }
+        });
+    </script>
+
+</head>
+
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen text-gray-900 dark:text-gray-100">
+
+    <!-- HEADER -->
+    <div class="flex justify-between items-center p-6 max-w-6xl mx-auto">
+        <h1 class="text-4xl font-bold">🔍 AI-Powered News Authenticity Analyzer</h1>
+
+        <div class="flex gap-3">
+            <a href="/dashboard"
+                class="bg-blue-600 hover:bg-blue-700 dark:bg-blue-400 dark:text-black text-white px-4 py-2 rounded shadow">
+                Dashboard
+            </a>
+            <button onclick="toggleDark()"
+                class="bg-gray-800 dark:bg-gray-200 text-white dark:text-black px-4 py-2 rounded shadow">
+                Toggle Dark Mode
+            </button>
+        </div>
+    </div>
+
+
+    <div class="max-w-4xl mx-auto space-y-10">
+
+        <!-- TEXT ANALYSIS -->
+        <div class="bg-white/10 dark:bg-white/10 backdrop-blur-xl p-6 rounded-xl shadow-xl border border-white/20">
+            <h2 class="text-2xl font-bold mb-4">✍️ Analyze Text</h2>
+
+            <form action="/analyze_text" method="POST" class="space-y-3">
+                <textarea name="news" placeholder="Paste news article text here..."
+                    class="w-full border border-gray-300 dark:border-gray-700 bg-white/20 dark:bg-black/20
+                           backdrop-blur-lg p-3 rounded text-gray-900 dark:text-gray-100"></textarea>
+
+                <button
+                    class="transition bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600
+                           text-white px-4 py-2 rounded-lg shadow">
+                    Analyze Text
+                </button>
+            </form>
+        </div>
+
+
+        <!-- URL ANALYSIS -->
+        <div class="bg-white/10 dark:bg-white/10 backdrop-blur-xl p-6 rounded-xl shadow-xl border border-white/20">
+            <h2 class="text-2xl font-bold mb-4">🔗 Analyze URL</h2>
+
+            <form action="/analyze_url" method="POST" class="space-y-3">
+                <input name="url" placeholder="Enter article URL..."
+                    class="w-full border border-gray-300 dark:border-gray-700 bg-white/20 dark:bg-black/20 p-3 rounded" />
+
+                <button
+                    class="transition bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600
+                           text-white px-4 py-2 rounded-lg shadow">
+                    Analyze URL
+                </button>
+            </form>
+        </div>
+
+
+        <!-- FILE UPLOAD -->
+        <div class="bg-white/10 dark:bg-white/10 backdrop-blur-xl p-6 rounded-xl shadow-xl border border-white/20">
+            <h2 class="text-2xl font-bold mb-4">📁 Upload File (PDF / DOCX / TXT)</h2>
+
+            <form action="/upload_file" method="POST" enctype="multipart/form-data" class="space-y-3">
+                <input type="file" name="file"
+                    class="w-full border border-gray-300 dark:border-gray-700 bg-white/20 dark:bg-black/20 p-3 rounded" />
+
+                <button
+                    class="transition bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600
+                           text-white px-4 py-2 rounded-lg shadow">
+                    Upload & Analyze
+                </button>
+            </form>
+        </div>
+
+
+        <!-- ERROR MESSAGE -->
+        {% if error %}
+        <div class="bg-red-500/20 border border-red-400 text-red-200 p-4 rounded">
+            {{ error }}
+        </div>
+        {% endif %}
+
+
+
+        <!-- ===================== RESULTS ===================== -->
+        {% if results %}
+        <div class="space-y-10">
+
+
+            <!-- SUMMARY -->
+            <div class="bg-white/10 p-6 rounded-xl border border-white/20 backdrop-blur-xl">
+                <h2 class="text-xl font-bold mb-3">📝 Summary</h2>
+                <p>{{ results.summary }}</p>
+            </div>
+
+
+            <!-- FAKE NEWS DETECTION -->
+            <div class="bg-white/10 p-6 rounded-xl border border-white/20 backdrop-blur-xl">
+                <h2 class="text-xl font-bold mb-3">📰 Fake News Detection</h2>
+
+                <p class="font-bold text-lg">{{ results.fake.label }}</p>
+                <p>Real Probability: <b>{{ results.fake.real_prob }}</b></p>
+                <p>Fake Probability: <b>{{ results.fake.fake_prob }}</b></p>
+            </div>
+
+
+            <!-- SENTIMENT -->
+            <div class="bg-white/10 p-6 rounded-xl border border-white/20 backdrop-blur-xl">
+                <h2 class="text-xl font-bold mb-3">😊 Sentiment</h2>
+                <p>{{ results.sentiment.label }} ({{ results.sentiment.score }})</p>
+            </div>
+
+
+            <!-- EMOTION -->
+            <div class="bg-white/10 p-6 rounded-xl border border-white/20 backdrop-blur-xl">
+                <h2 class="text-xl font-bold mb-3">😡 Top Emotion</h2>
+                <p>{{ results.emotion.top_emotion }}</p>
+            </div>
+
+
+            <!-- TOPICS -->
+            <div class="bg-white/10 p-6 rounded-xl border border-white/20 backdrop-blur-xl">
+                <h2 class="text-xl font-bold mb-3">📌 Topics</h2>
+                <p>Main Topic: {{ results.topics.top_topic }}</p>
+            </div>
+
+
+            <!-- KEYWORDS -->
+            <div class="bg-white/10 p-6 rounded-xl border border-white/20 backdrop-blur-xl">
+                <h2 class="text-xl font-bold mb-3">🔑 Keywords</h2>
+                <div class="flex flex-wrap gap-2">
+                    {% for k in results.keywords %}
+                    <span class="bg-blue-500/20 dark:bg-blue-400/20 px-3 py-1 rounded-full">{{ k }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+
+
+            <!-- FACT CHECK -->
+            {% if fact_check %}
+            <div class="bg-white/10 p-6 rounded-xl border border-white/20 backdrop-blur-xl">
+                <h2 class="text-xl font-bold mb-3">🔍 Fact Check Results</h2>
+
+                {% for fc in fact_check %}
+                <div class="border-l-4 border-blue-500 pl-4 mb-3">
+                    <p class="font-bold">{{ fc.title }}</p>
+                    <p class="opacity-80">{{ fc.snippet }}</p>
+                    <a href="{{ fc.link }}" target="_blank" class="text-blue-400 underline">View Source</a>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+        </div>
+        {% endif %}
+
+    </div>
+
+</body>
+</html>

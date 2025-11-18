@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard — AI-Powered News Authenticity Analyzer</title>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = { darkMode: 'class' };
+
+        function toggleDark() {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem("darkMode", document.documentElement.classList.contains("dark"));
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if (localStorage.getItem("darkMode") === "true") {
+                document.documentElement.classList.add("dark");
+            }
+        });
+    </script>
+
+</head>
+
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+
+    <!-- HEADER -->
+    <div class="flex justify-between items-center p-6 max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold">📊 Dashboard  
+            <span class="opacity-70">— AI-Powered News Authenticity Analyzer</span>
+        </h1>
+
+        <div class="flex gap-3">
+            <a href="/" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow">
+                Back to Home
+            </a>
+            <button onclick="toggleDark()" class="bg-gray-800 dark:bg-gray-200 text-white dark:text-black px-4 py-2 rounded shadow">
+                Toggle Dark
+            </button>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto space-y-10">
+
+        <!-- ===================== STAT CARDS ===================== -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            <!-- Total Analyses -->
+            <div class="p-6 bg-white/10 rounded-xl shadow-xl border border-white/20 backdrop-blur-xl">
+                <h2 class="text-xl font-bold">Total Analyses</h2>
+                <p class="text-4xl mt-2">{{ history|length }}</p>
+            </div>
+
+            <!-- Real News Count -->
+            <div class="p-6 bg-green-600/20 rounded-xl shadow-xl border border-white/20 backdrop-blur-xl">
+                <h2 class="text-xl font-bold">Real News Detected</h2>
+                <p class="text-4xl mt-2">
+                    {{ history|selectattr("fake_label", "equalto", "REAL NEWS ✔️")|list|length }}
+                </p>
+            </div>
+
+            <!-- Fake News Count -->
+            <div class="p-6 bg-red-600/20 rounded-xl shadow-xl border border-white/20 backdrop-blur-xl">
+                <h2 class="text-xl font-bold">Fake News Detected</h2>
+                <p class="text-4xl mt-2">
+                    {{ history|selectattr("fake_label", "equalto", "FAKE NEWS ❌")|list|length }}
+                </p>
+            </div>
+        </div>
+
+        <!-- ===================== CHARTS ===================== -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            <!-- Fake vs Real -->
+            <div class="bg-white/10 p-4 rounded-xl border border-white/20 backdrop-blur-xl">
+                <h2 class="font-bold mb-2">Fake vs Real</h2>
+                <canvas id="chartFakeReal"></canvas>
+            </div>
+
+            <!-- Sentiment -->
+            <div class="bg-white/10 p-4 rounded-xl border border-white/20 backdrop-blur-xl">
+                <h2 class="font-bold mb-2">Sentiment Distribution</h2>
+                <canvas id="chartSentiment"></canvas>
+            </div>
+
+            <!-- Topics -->
+            <div class="bg-white/10 p-4 rounded-xl border border-white/20 backdrop-blur-xl">
+                <h2 class="font-bold mb-2">Topics</h2>
+                <canvas id="chartTopics"></canvas>
+            </div>
+        </div>
+
+        <!-- ===================== HISTORY TABLE ===================== -->
+        <div class="bg-white/10 p-6 rounded-xl shadow-xl border border-white/20 backdrop-blur-xl mt-10">
+            <h2 class="text-2xl font-bold mb-4">📁 Analysis History</h2>
+
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse">
+                    <thead class="bg-gray-800 text-white">
+                        <tr>
+                            <th class="p-3">Type</th>
+                            <th class="p-3">Preview</th>
+                            <th class="p-3">Fake/Real</th>
+                            <th class="p-3">Sentiment</th>
+                            <th class="p-3">Emotion</th>
+                            <th class="p-3">Topic</th>
+                            <th class="p-3">Time</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for row in history %}
+                        <tr class="border-b border-gray-700">
+                            <td class="p-3">{{ row.input_type }}</td>
+                            <td class="p-3">{{ row.input_preview }}</td>
+                            <td class="p-3">{{ row.fake_label }}</td>
+                            <td class="p-3">{{ row.sentiment_label }}</td>
+                            <td class="p-3">{{ row.emotion_label }}</td>
+                            <td class="p-3">{{ row.topics }}</td>
+                            <td class="p-3">{{ row.timestamp }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ===================== CHART DATA INJECTION ===================== -->
+    <script>
+        const history = {{ history | tojson }};
+
+        // Fake vs Real Pie Chart
+        const fakeCount = history.filter(h => h.fake_label === "FAKE NEWS ❌").length;
+        const realCount = history.filter(h => h.fake_label === "REAL NEWS ✔️").length;
+
+        new Chart(document.getElementById("chartFakeReal"), {
+            type: "pie",
+            data: {
+                labels: ["Real", "Fake"],
+                datasets: [{
+                    data: [realCount, fakeCount],
+                    backgroundColor: ["#10B981", "#EF4444"]
+                }]
+            }
+        });
+
+        // Sentiment Chart
+        const sentiments = {};
+        history.forEach(h => {
+            sentiments[h.sentiment_label] = (sentiments[h.sentiment_label] || 0) + 1;
+        });
+
+        new Chart(document.getElementById("chartSentiment"), {
+            type: "bar",
+            data: {
+                labels: Object.keys(sentiments),
+                datasets: [{
+                    label: "Count",
+                    data: Object.values(sentiments),
+                    backgroundColor: "#3B82F6"
+                }]
+            }
+        });
+
+        // Topic Chart
+        const topics = {};
+        history.forEach(h => {
+            topics[h.topics] = (topics[h.topics] || 0) + 1;
+        });
+
+        new Chart(document.getElementById("chartTopics"), {
+            type: "bar",
+            data: {
+                labels: Object.keys(topics),
+                datasets: [{
+                    label: "Articles",
+                    data: Object.values(topics),
+                    backgroundColor: "#8B5CF6"
+                }]
+            }
+        });
+    </script>
+
+</body>
+</html>
